@@ -3,7 +3,7 @@
 
 class FireValidator{
     public:
-        int ValidateWithIR(int sensor, int min = 0, int max = 1024);
+        int ValidateWithIR(int sensor, int min = 0, int max = 800);
 };
 
 #endif

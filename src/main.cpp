@@ -38,17 +38,19 @@ int fireMidCtr = 0;
 int fireLeftCtr = 0;
 bool trigger = false;
 int fireRightCtr = 0;
+bool resetInitiated = false;
 
 //fire validation
 FireValidator fireValidator;
 
 AF_DCMotor MOTOR_3(3, MOTOR12_64KHZ);
 AF_DCMotor MOTOR_4(4, MOTOR12_64KHZ);
-AF_DCMotor LED_BLUE_MTR(1, MOTOR12_64KHZ);
-AF_DCMotor EXT_TRIG(2, MOTOR12_64KHZ);
+AF_DCMotor LED_BLUE_MTR(2, MOTOR12_64KHZ);
+// AF_DCMotor EXT_TRIG(1, MOTOR12_64KHZ);
+AF_DCMotor MOTOR_TRIGGER(1, MOTOR12_64KHZ);
 
-int LED_RED = 9;//servo2
-int EXT_SERVO2 = 10;//servo1
+int LED_RED = 10;//servo2
+int EXT_SERVO2 = 9;//servo1
 int SPK_1 = 2;
 int SPEAKER_PIN = 2;
 Servo servo_led;
@@ -77,16 +79,7 @@ void sendCommand(){
 }
 
 void switchRedLED(bool on=true, int pwm = 255){
-    //digitalWrite(LED_RED,on?pwm:0);
-}
-
-void resetExtinguisher()
-{
-    EXT_TRIG.run(BACKWARD);
-    delay(triggerMs/3);
-    EXT_TRIG.run(RELEASE);
-    swingHose = false;
-    LED_BLUE_MTR.run(RELEASE);
+    digitalWrite(LED_RED,on?pwm:0);
 }
 
 void resetIRValues()
@@ -99,14 +92,14 @@ void resetIRValues()
 
 void reset()
 {
-    resetExtinguisher();
+    // resetExtinguisher();
+    // MOTOR_3.setSpeed(255);
+    // MOTOR_4.setSpeed(255);
     lastCommandTime = millis(); // Resetting the timer when the reset function is called
     angle = 0;
     MOTOR_3.run(BACKWARD);
     MOTOR_4.run(BACKWARD);
-
-    delay(5000);
-
+    delay(1000);
     MOTOR_3.run(RELEASE);
     MOTOR_4.run(RELEASE);
 
@@ -115,137 +108,125 @@ void reset()
     fireDetected = false;
     currentCommandRequest = NONE;
     trigger = false;
+    swingHose = false;
 
     resetIRValues();
 
     Serial.println("System reset.");
 }
 
-void triggerExtinguisher()
-{
-    MOTOR_3.run(RELEASE);
-    MOTOR_4.run(RELEASE);
-    EXT_TRIG.run(FORWARD);
-    delay(triggerMs*2);
-    swingHose = true;
-}
-
-void fireSiren(int durationMillis) {
-  int minFreq = 500;  // Minimum frequency
-  int maxFreq = 3000; // Maximum frequency
-  int step = 10;      // Frequency step size
+// void fireSiren(int durationMillis) {
+//   int minFreq = 500;  // Minimum frequency
+//   int maxFreq = 3000; // Maximum frequency
+//   int step = 10;      // Frequency step size
   
-  for (int freq = minFreq; freq < maxFreq; freq += step) {
-    tone(SPK_1, freq);
-    delay(5); // Adjust delay for speed control
-  }
+//   for (int freq = minFreq; freq < maxFreq; freq += step) {
+//     tone(SPK_1, freq);
+//     delay(5); // Adjust delay for speed control
+//   }
 
-  for (int freq = maxFreq; freq > minFreq; freq -= step) {
-    tone(SPK_1, freq);
-    delay(5); // Adjust delay for speed control
-  }
+//   for (int freq = maxFreq; freq > minFreq; freq -= step) {
+//     tone(SPK_1, freq);
+//     delay(5); // Adjust delay for speed control
+//   }
 
-  delay(durationMillis);
-  noTone(SPK_1); // Stop tone after specified duration
-}
+//   delay(durationMillis);
+//   noTone(SPK_1); // Stop tone after specified duration
+// }
 
-void wailingSiren(int durationMillis) {
-  int tone1 = 1000; // First tone frequency
-  int tone2 = 2000; // Second tone frequency
-  int switchTime = 500; // Time between switching tones (milliseconds)
+// void wailingSiren(int durationMillis) {
+//   int tone1 = 1000; // First tone frequency
+//   int tone2 = 2000; // Second tone frequency
+//   int switchTime = 500; // Time between switching tones (milliseconds)
 
-  unsigned long startTime = millis(); // Start time of the wailing
+//   unsigned long startTime = millis(); // Start time of the wailing
   
-  while (millis() - startTime < durationMillis) {
-    tone(SPK_1, tone1);
-    delay(switchTime / 2);
-    noTone(SPK_1);
-    delay(switchTime / 2);
+//   while (millis() - startTime < durationMillis) {
+//     tone(SPK_1, tone1);
+//     delay(switchTime / 2);
+//     noTone(SPK_1);
+//     delay(switchTime / 2);
 
-    tone(SPK_1, tone2);
-    delay(switchTime / 2);
-    noTone(SPK_1);
-    delay(switchTime / 2);
-  }
-}
+//     tone(SPK_1, tone2);
+//     delay(switchTime / 2);
+//     noTone(SPK_1);
+//     delay(switchTime / 2);
+//   }
+// }
 
-void emergencySiren(int durationMillis) {
-  int tone1 = 1500; // First tone frequency
-  int tone2 = 2500; // Second tone frequency
-  int pulseDuration = 100; // Duration of each tone pulse (milliseconds)
+// void emergencySiren(int durationMillis) {
+//   int tone1 = 1500; // First tone frequency
+//   int tone2 = 2500; // Second tone frequency
+//   int pulseDuration = 100; // Duration of each tone pulse (milliseconds)
 
-  unsigned long startTime = millis(); // Start time of the emergency siren
+//   unsigned long startTime = millis(); // Start time of the emergency siren
 
-  while (millis() - startTime < durationMillis) {
-    tone(SPK_1, tone1);
-    delay(pulseDuration);
-    noTone(SPK_1);
-    delay(pulseDuration);
+//   while (millis() - startTime < durationMillis) {
+//     tone(SPK_1, tone1);
+//     delay(pulseDuration);
+//     noTone(SPK_1);
+//     delay(pulseDuration);
     
-    tone(SPK_1, tone2);
-    delay(pulseDuration);
-    noTone(SPK_1);
-    delay(pulseDuration);
-  }
-}
+//     tone(SPK_1, tone2);
+//     delay(pulseDuration);
+//     noTone(SPK_1);
+//     delay(pulseDuration);
+//   }
+// }
 
-void mixedSiren(int durationMillis) {
-  int tone1 = 1500; // First tone frequency for emergency siren
-  int tone2 = 2000; // Second tone frequency for emergency siren
-  int tone3 = 600;  // First tone frequency for fire siren
-  int tone4 = 3000; // Second tone frequency for fire siren
-  int pulseDuration = 100; // Duration of each tone pulse (milliseconds)
-  int switchTime = 500; // Time between switching tones (milliseconds)
+// void mixedSiren(int durationMillis) {
+//   int tone1 = 1500; // First tone frequency for emergency siren
+//   int tone2 = 2000; // Second tone frequency for emergency siren
+//   int tone3 = 600;  // First tone frequency for fire siren
+//   int tone4 = 3000; // Second tone frequency for fire siren
+//   int pulseDuration = 100; // Duration of each tone pulse (milliseconds)
+//   int switchTime = 500; // Time between switching tones (milliseconds)
 
-  unsigned long startTime = millis(); // Start time of the mixed siren
+//   unsigned long startTime = millis(); // Start time of the mixed siren
 
-  while (millis() - startTime < durationMillis) {
-    // Play emergency siren tone
-    for (int i = 0; i < 3; i++) {
-      tone(SPEAKER_PIN, tone1);
-      delay(pulseDuration);
-      noTone(SPEAKER_PIN);
-      delay(pulseDuration);
-      tone(SPEAKER_PIN, tone2);
-      delay(pulseDuration);
-      noTone(SPEAKER_PIN);
-      delay(pulseDuration);
-    }
-    // Play fire siren tone
-    for (int i = 0; i < 3; i++) {
-      tone(SPEAKER_PIN, tone3);
-      delay(pulseDuration);
-      noTone(SPEAKER_PIN);
-      delay(pulseDuration);
-      tone(SPEAKER_PIN, tone4);
-      delay(pulseDuration);
-      noTone(SPEAKER_PIN);
-      delay(pulseDuration);
-    }
-    delay(switchTime);
-  }
-}
+//   while (millis() - startTime < durationMillis) {
+//     // Play emergency siren tone
+//     for (int i = 0; i < 3; i++) {
+//       tone(SPEAKER_PIN, tone1);
+//       delay(pulseDuration);
+//       noTone(SPEAKER_PIN);
+//       delay(pulseDuration);
+//       tone(SPEAKER_PIN, tone2);
+//       delay(pulseDuration);
+//       noTone(SPEAKER_PIN);
+//       delay(pulseDuration);
+//     }
+//     // Play fire siren tone
+//     for (int i = 0; i < 3; i++) {
+//       tone(SPEAKER_PIN, tone3);
+//       delay(pulseDuration);
+//       noTone(SPEAKER_PIN);
+//       delay(pulseDuration);
+//       tone(SPEAKER_PIN, tone4);
+//       delay(pulseDuration);
+//       noTone(SPEAKER_PIN);
+//       delay(pulseDuration);
+//     }
+//     delay(switchTime);
+//   }
+// }
 
-void dubstepSound(int durationMillis) {
-  unsigned long startTime = millis(); // Start time of the dubstep sound
+// void dubstepSound() {
+//     delay(100);
+//     // tone(SPEAKER_PIN, 50); // Low-frequency tone
+//     // delay(300); // Duration of the bassline
 
-  while (millis() - startTime < durationMillis) {
-    // Bassline
-    tone(SPEAKER_PIN, 50); // Low-frequency tone
-    delay(300); // Duration of the bassline
+//     // // Rhythmic pattern
+//     // tone(SPEAKER_PIN, 500); // Higher-frequency tone
+//     // delay(50); // Short delay
+//     // noTone(SPEAKER_PIN); // Silence
+//     // delay(50); // Short delay
 
-    // Rhythmic pattern
-    tone(SPEAKER_PIN, 500); // Higher-frequency tone
-    delay(50); // Short delay
-    noTone(SPEAKER_PIN); // Silence
-    delay(50); // Short delay
-
-    tone(SPEAKER_PIN, 300); // Mid-frequency tone
-    delay(100); // Short delay
-    noTone(SPEAKER_PIN); // Silence
-    delay(100); // Short delay
-  }
-}
+//     // tone(SPEAKER_PIN, 300); // Mid-frequency tone
+//     // delay(100); // Short delay
+//     // noTone(SPEAKER_PIN); // Silence
+//     // delay(100); // Short delay
+// }
 
 void beep(int spk = SPK_1){
    for( int i = 0; i<500;i++){
@@ -284,15 +265,26 @@ void blinkLEDS(int freq = 2)
     }
 }
 
-void wangWang()
+void wangWang(int freq = 1)
 {
-    dubstepSound(500);
-    fireSiren(500);
-    wailingSiren(500);
-    fireSiren(500);
-    emergencySiren(500);
-    fireSiren(500);
-    mixedSiren(200);
+    int ctr = 0;
+    do{
+        ctr++;
+        for (int i = 100; i < 2000; i += 10)
+        {                   // Increase frequency
+            tone(SPK_1, i); // Play tone
+            delay(5);       // Small delay for smooth transition
+        }
+
+        // Falling part of the siren
+        for (int i = 2000; i > 100; i -= 10)
+        {                   // Decrease frequency
+            tone(SPK_1, i); // Play tone
+            delay(5);       // Small delay for smooth transition
+        }
+    }
+    while (ctr < freq);
+    noTone(SPK_1);
 }
 
 
@@ -300,11 +292,11 @@ void executeCommand(char c)
 {
     if (c == FWD)
     {
+        MOTOR_3.setSpeed(255);
+        MOTOR_4.setSpeed(255);
+
         MOTOR_3.run(FORWARD);
         MOTOR_4.run(FORWARD);
-        LED_BLUE_MTR.run(FORWARD);
-        switchRedLED();
-        dubstepSound(100);
     }
     else if(c == 'G'){
         MOTOR_3.run(FORWARD);
@@ -313,42 +305,57 @@ void executeCommand(char c)
     }
     else if (c == BWD)
     {
+        MOTOR_3.setSpeed(255);
+        MOTOR_4.setSpeed(255);
+
         MOTOR_3.run(BACKWARD);
         MOTOR_4.run(BACKWARD);
     }
     else if (c == LEFT)
     {
-        MOTOR_3.run(RELEASE);
+        // MOTOR_3.setSpeed(10);
+        MOTOR_3.run(RELEASE);// 150 speed
         MOTOR_4.run(FORWARD);
     }
     else if (c == RIGHT)
     {
-        MOTOR_4.run(RELEASE);
+        // MOTOR_4.setSpeed(10);
+        MOTOR_4.run(RELEASE);// 150 speed
         MOTOR_3.run(FORWARD);
     }
     else if (c == LEFT_BW)
     {
-        MOTOR_3.run(RELEASE);
+        // MOTOR_3.setSpeed(10);
+        MOTOR_3.run(RELEASE);// 150 speed
         MOTOR_4.run(BACKWARD);
     }
     else if (c == RIGHT_BW)
     {
-        MOTOR_4.run(RELEASE);
+        // MOTOR_4.setSpeed(150);
+        MOTOR_4.run(RELEASE);// 150 speed
         MOTOR_3.run(BACKWARD);
     }
     else if (c == STOP)
     {
+        MOTOR_3.setSpeed(255);
+        MOTOR_4.setSpeed(255);
         MOTOR_3.run(RELEASE);
         MOTOR_4.run(RELEASE);
     }
     else if (c == EXTINGUISH)
     {
         //triggerExtinguisher();
-        trigger = true;
+        swingHose = true;
+        // MOTOR_TRIGGER.run(FORWARD);
+        // delay(triggerMs);
+        // MOTOR_TRIGGER.run(RELEASE);
     }
     else if (c == RESET_MOTOR)
     {
-        reset();
+        //MOTOR_TRIGGER.run(BACKWARD);
+        // delay(triggerMs);
+        // MOTOR_TRIGGER.run(RELEASE);
+        resetInitiated = true;
     }
     else if (c == FLAME_IR){
         validateIR = true;
@@ -359,7 +366,7 @@ void executeCommand(char c)
         validateIRWithMotor = true;
     }
     else if(c==WANG_WANG){
-        startSiren = true;
+        // startSiren = true;
     }
     else if(c==SOUND){
         beep();
@@ -368,11 +375,11 @@ void executeCommand(char c)
     {
         MOTOR_3.run(RELEASE);
         MOTOR_4.run(RELEASE);
+        // EXT_TRIG.run(RELEASE);
         LED_BLUE_MTR.run(RELEASE);
         switchRedLED(false);
         validateIR = false;
         validateIRWithMotor = false;
-        //EXT_TRIG.run(RELEASE);
     }
 
     Serial.print("Received command: ");
@@ -394,21 +401,17 @@ void wireReceiveEvent(int bytes)
 void initMotors()
 {
     MOTOR_3.setSpeed(255);
-    MOTOR_3.run(RELEASE);
     MOTOR_4.setSpeed(255);
-    MOTOR_4.run(RELEASE);
+    MOTOR_TRIGGER.setSpeed(255);
 
-    // servo_trigger.attach(EXT_SERVO1);
-    EXT_TRIG.setSpeed(255);
-    EXT_TRIG.run(RELEASE);
     servo_hose.attach(EXT_SERVO2);
     servo_hose.write(15);
 }
 
 void initComponents()
 {
-    LED_BLUE_MTR.setSpeed(255);
-    LED_BLUE_MTR.run(RELEASE);
+    // LED_BLUE_MTR.setSpeed(255);
+    // LED_BLUE_MTR.run(RELEASE);
     
     //pinMode(LED_RED,OUTPUT);
     //digitalWrite(LED_RED,HIGH);
@@ -420,14 +423,19 @@ bool FireValidatedWithIR(){
     return (fireMidCtr+fireLeftCtr+fireRightCtr)>0;
 }
 
-void startSirenAndSwing()
+void triggerExt()
 {
+    MOTOR_TRIGGER.run(FORWARD);
+    delay(triggerMs);
     servo_hose.write(0);
-    dubstepSound(50);
+    delay(500);
     servo_hose.write(45);
-    dubstepSound(50);
+    delay(500);
     servo_hose.write(23);
-    fireSiren(100);
+    delay(800);
+    MOTOR_TRIGGER.run(BACKWARD);
+    delay(triggerMs);
+    MOTOR_TRIGGER.run(RELEASE);
 }
 
 void setup()
@@ -444,19 +452,32 @@ void setup()
 
 void loop()
 {
-    if(trigger){
-        triggerExtinguisher();
-        trigger = false;
+    if(resetInitiated){
+        reset();
+        resetInitiated = false;
+        swingHose = false;
+    }
+    if (swingHose)
+    {
+        triggerExt();
+        beep(SPK_1);
+        //wangWang();
+    }
+
+    if(startSiren){
+        // blinkLEDS(2);
+        // wangWang();
+        startSiren = false;
     }
 
     if(validateIR){
-        swingHose = false;
-        
         if (validateIRWithMotor){
             Serial.println("Driving Forward...");
             executeCommand(FWD);
-            dubstepSound(200);
-            mixedSiren(200);
+            //dubstepSound();
+            delay(200);
+            //();
+            beep();
             executeCommand(STOP);
         }
 
@@ -487,39 +508,40 @@ void loop()
             Serial.println("Maneuvering until fire is detected in the middle...");
         }
         else{
-            currentCommandRequest = NONE;
-            executeCommand(STOP);
-            resetIRValues();
-            return;
-            // fireOutCounter++;
-            // if(fireOutCounter>2){
-            //     fireOutCounter = 0;
-            //     currentCommandRequest = NONE;
-            //     executeCommand(STOP);
-            //     resetIRValues();
-            //     return;
-            // }
+            fireOutCounter++;
+            if(fireOutCounter>10){
+                currentCommandRequest = NONE;
+                executeCommand(STOP);
+                resetIRValues();
+                return;
+            }
         }
 
         if(fireLeftCtr > fireMidCtr){
-            dubstepSound(200);
+            //dubstepSound();
+            delay(500);
             currentCommandRequest = MANEUVER_RIGHT;
             Serial.println("Fire is detected from the left...");
             executeCommand(RIGHT_BW);
-            delay(3500);
-            executeCommand(LEFT);
-            delay(2000);
+            delay(600);
+            executeCommand(BWD);
+            delay(200);
+            executeCommand(FWD);
+            delay(300);
             executeCommand(STOP);
         }
 
         if(fireRightCtr > fireMidCtr){
-            dubstepSound(200);
+            //dubstepSound();
+            delay(500);
             currentCommandRequest = MANEUVER_LEFT;
             Serial.println("Fire is detected from the right...");
             executeCommand(LEFT_BW);
-            delay(3500);
-            executeCommand(RIGHT);
-            delay(2000);
+            delay(600);
+            executeCommand(BWD);
+            delay(200);
+            executeCommand(FWD);
+            delay(300);
             executeCommand(STOP);
         }
         
@@ -528,15 +550,5 @@ void loop()
            validateIR = true;
         }
 
-    }
-    if (swingHose)
-    {
-        startSirenAndSwing();
-    }
-
-    if(startSiren){
-        blinkLEDS(2);
-        wangWang();
-        startSiren = false;
     }
 }
