@@ -27,13 +27,46 @@
 #define VALIDATE_FIRE_IR_LEFT [&]() { return fireValidator.ValidateWithIR(FLM_IR_LEFT); }()
 #define VALIDATE_FIRE_IR_RIGHT [&]() { return fireValidator.ValidateWithIR(FLM_IR_RIGHT); }()
 
+//MANEUVER CONSTANTS
+static const int TO_RIGHT_DELAY = 300;
+static const int TO_LEFT_DELAY = 200;
+static const int TO_RIGHT_BW_DELAY = 600;
+static const int TO_LEFT_BW_DELAY = 600;
+static const int TO_FORWARD_DELAY = 300;
+static const int TO_BACKWARD_DELAY = 200;
+static const int ON_MANEUVER_DELAY = 500;
+
+//FIRE SENSOR/EXTINGUISHER CONSTANTS
+static const int FIRE_OUT_LIMIT = 10;
+static const int SERVO_HOSE_DELAY_0DEG = 500;
+static const int SERVO_HOSE_DELAY_45DEG = 500;
+static const int SERVO_HOSE_DELAY_23DEG = 800; //middle hose
+static const int MOTOR_TRIGGER_TIMER=1000;
+
+
+//MOTOR CONSTANTS
+static const int  MOTOR_LEFT_SPEED = 255;
+static const int  MOTOR_RIGHT_SPEED = 255;
+static const int MOTOR_TRIGGER_SPEED = 255;
+AF_DCMotor MOTOR_3(3, MOTOR12_64KHZ);
+AF_DCMotor MOTOR_4(4, MOTOR12_64KHZ);
+AF_DCMotor LED_BLUE_MTR(2, MOTOR12_64KHZ);
+AF_DCMotor MOTOR_TRIGGER(1, MOTOR12_64KHZ);
+
+//OTHER COMPONENTS
+int LED_RED = 10;//servo2
+int SERVO_HOSE = 9;//servo1
+int SPK_1 = 2;
+int SPEAKER_PIN = 2;
+
+//Fire Sensor
+//-Components
 int FLM_IR_MID = A0;
 int FLM_IR_LEFT = A1;
 int FLM_IR_RIGHT = A2;
 
 int testRunTimer = 10;
 int timer = 0;
-int triggerMs=1000;
 int fireMidCtr = 0;
 int fireLeftCtr = 0;
 bool trigger = false;
@@ -42,17 +75,6 @@ bool resetInitiated = false;
 
 //fire validation
 FireValidator fireValidator;
-
-AF_DCMotor MOTOR_3(3, MOTOR12_64KHZ);
-AF_DCMotor MOTOR_4(4, MOTOR12_64KHZ);
-AF_DCMotor LED_BLUE_MTR(2, MOTOR12_64KHZ);
-// AF_DCMotor EXT_TRIG(1, MOTOR12_64KHZ);
-AF_DCMotor MOTOR_TRIGGER(1, MOTOR12_64KHZ);
-
-int LED_RED = 10;//servo2
-int EXT_SERVO2 = 9;//servo1
-int SPK_1 = 2;
-int SPEAKER_PIN = 2;
 Servo servo_led;
 Servo servo_hose;
 
@@ -92,9 +114,6 @@ void resetIRValues()
 
 void reset()
 {
-    // resetExtinguisher();
-    // MOTOR_3.setSpeed(255);
-    // MOTOR_4.setSpeed(255);
     lastCommandTime = millis(); // Resetting the timer when the reset function is called
     angle = 0;
     MOTOR_3.run(BACKWARD);
@@ -114,119 +133,6 @@ void reset()
 
     Serial.println("System reset.");
 }
-
-// void fireSiren(int durationMillis) {
-//   int minFreq = 500;  // Minimum frequency
-//   int maxFreq = 3000; // Maximum frequency
-//   int step = 10;      // Frequency step size
-  
-//   for (int freq = minFreq; freq < maxFreq; freq += step) {
-//     tone(SPK_1, freq);
-//     delay(5); // Adjust delay for speed control
-//   }
-
-//   for (int freq = maxFreq; freq > minFreq; freq -= step) {
-//     tone(SPK_1, freq);
-//     delay(5); // Adjust delay for speed control
-//   }
-
-//   delay(durationMillis);
-//   noTone(SPK_1); // Stop tone after specified duration
-// }
-
-// void wailingSiren(int durationMillis) {
-//   int tone1 = 1000; // First tone frequency
-//   int tone2 = 2000; // Second tone frequency
-//   int switchTime = 500; // Time between switching tones (milliseconds)
-
-//   unsigned long startTime = millis(); // Start time of the wailing
-  
-//   while (millis() - startTime < durationMillis) {
-//     tone(SPK_1, tone1);
-//     delay(switchTime / 2);
-//     noTone(SPK_1);
-//     delay(switchTime / 2);
-
-//     tone(SPK_1, tone2);
-//     delay(switchTime / 2);
-//     noTone(SPK_1);
-//     delay(switchTime / 2);
-//   }
-// }
-
-// void emergencySiren(int durationMillis) {
-//   int tone1 = 1500; // First tone frequency
-//   int tone2 = 2500; // Second tone frequency
-//   int pulseDuration = 100; // Duration of each tone pulse (milliseconds)
-
-//   unsigned long startTime = millis(); // Start time of the emergency siren
-
-//   while (millis() - startTime < durationMillis) {
-//     tone(SPK_1, tone1);
-//     delay(pulseDuration);
-//     noTone(SPK_1);
-//     delay(pulseDuration);
-    
-//     tone(SPK_1, tone2);
-//     delay(pulseDuration);
-//     noTone(SPK_1);
-//     delay(pulseDuration);
-//   }
-// }
-
-// void mixedSiren(int durationMillis) {
-//   int tone1 = 1500; // First tone frequency for emergency siren
-//   int tone2 = 2000; // Second tone frequency for emergency siren
-//   int tone3 = 600;  // First tone frequency for fire siren
-//   int tone4 = 3000; // Second tone frequency for fire siren
-//   int pulseDuration = 100; // Duration of each tone pulse (milliseconds)
-//   int switchTime = 500; // Time between switching tones (milliseconds)
-
-//   unsigned long startTime = millis(); // Start time of the mixed siren
-
-//   while (millis() - startTime < durationMillis) {
-//     // Play emergency siren tone
-//     for (int i = 0; i < 3; i++) {
-//       tone(SPEAKER_PIN, tone1);
-//       delay(pulseDuration);
-//       noTone(SPEAKER_PIN);
-//       delay(pulseDuration);
-//       tone(SPEAKER_PIN, tone2);
-//       delay(pulseDuration);
-//       noTone(SPEAKER_PIN);
-//       delay(pulseDuration);
-//     }
-//     // Play fire siren tone
-//     for (int i = 0; i < 3; i++) {
-//       tone(SPEAKER_PIN, tone3);
-//       delay(pulseDuration);
-//       noTone(SPEAKER_PIN);
-//       delay(pulseDuration);
-//       tone(SPEAKER_PIN, tone4);
-//       delay(pulseDuration);
-//       noTone(SPEAKER_PIN);
-//       delay(pulseDuration);
-//     }
-//     delay(switchTime);
-//   }
-// }
-
-// void dubstepSound() {
-//     delay(100);
-//     // tone(SPEAKER_PIN, 50); // Low-frequency tone
-//     // delay(300); // Duration of the bassline
-
-//     // // Rhythmic pattern
-//     // tone(SPEAKER_PIN, 500); // Higher-frequency tone
-//     // delay(50); // Short delay
-//     // noTone(SPEAKER_PIN); // Silence
-//     // delay(50); // Short delay
-
-//     // tone(SPEAKER_PIN, 300); // Mid-frequency tone
-//     // delay(100); // Short delay
-//     // noTone(SPEAKER_PIN); // Silence
-//     // delay(100); // Short delay
-// }
 
 void beep(int spk = SPK_1){
    for( int i = 0; i<500;i++){
@@ -292,8 +198,8 @@ void executeCommand(char c)
 {
     if (c == FWD)
     {
-        MOTOR_3.setSpeed(255);
-        MOTOR_4.setSpeed(255);
+        MOTOR_3.setSpeed(MOTOR_LEFT_SPEED);
+        MOTOR_4.setSpeed(MOTOR_RIGHT_SPEED);
 
         MOTOR_3.run(FORWARD);
         MOTOR_4.run(FORWARD);
@@ -305,8 +211,8 @@ void executeCommand(char c)
     }
     else if (c == BWD)
     {
-        MOTOR_3.setSpeed(255);
-        MOTOR_4.setSpeed(255);
+        MOTOR_3.setSpeed(MOTOR_LEFT_SPEED);
+        MOTOR_4.setSpeed(MOTOR_RIGHT_SPEED);
 
         MOTOR_3.run(BACKWARD);
         MOTOR_4.run(BACKWARD);
@@ -337,24 +243,17 @@ void executeCommand(char c)
     }
     else if (c == STOP)
     {
-        MOTOR_3.setSpeed(255);
-        MOTOR_4.setSpeed(255);
+        MOTOR_3.setSpeed(MOTOR_LEFT_SPEED);
+        MOTOR_4.setSpeed(MOTOR_RIGHT_SPEED);
         MOTOR_3.run(RELEASE);
         MOTOR_4.run(RELEASE);
     }
     else if (c == EXTINGUISH)
     {
-        //triggerExtinguisher();
         swingHose = true;
-        // MOTOR_TRIGGER.run(FORWARD);
-        // delay(triggerMs);
-        // MOTOR_TRIGGER.run(RELEASE);
     }
     else if (c == RESET_MOTOR)
     {
-        //MOTOR_TRIGGER.run(BACKWARD);
-        // delay(triggerMs);
-        // MOTOR_TRIGGER.run(RELEASE);
         resetInitiated = true;
     }
     else if (c == FLAME_IR){
@@ -375,7 +274,6 @@ void executeCommand(char c)
     {
         MOTOR_3.run(RELEASE);
         MOTOR_4.run(RELEASE);
-        // EXT_TRIG.run(RELEASE);
         LED_BLUE_MTR.run(RELEASE);
         switchRedLED(false);
         validateIR = false;
@@ -400,21 +298,16 @@ void wireReceiveEvent(int bytes)
 
 void initMotors()
 {
-    MOTOR_3.setSpeed(255);
-    MOTOR_4.setSpeed(255);
-    MOTOR_TRIGGER.setSpeed(255);
+    MOTOR_3.setSpeed(MOTOR_LEFT_SPEED);
+    MOTOR_4.setSpeed(MOTOR_RIGHT_SPEED);
+    MOTOR_TRIGGER.setSpeed(MOTOR_TRIGGER_SPEED);
 
-    servo_hose.attach(EXT_SERVO2);
+    servo_hose.attach(SERVO_HOSE);
     servo_hose.write(15);
 }
 
 void initComponents()
 {
-    // LED_BLUE_MTR.setSpeed(255);
-    // LED_BLUE_MTR.run(RELEASE);
-    
-    //pinMode(LED_RED,OUTPUT);
-    //digitalWrite(LED_RED,HIGH);
     servo_led.attach(LED_RED);
     pinMode(SPK_1, OUTPUT);
 }
@@ -426,15 +319,15 @@ bool FireValidatedWithIR(){
 void triggerExt()
 {
     MOTOR_TRIGGER.run(FORWARD);
-    delay(triggerMs);
+    delay(MOTOR_TRIGGER_TIMER);
     servo_hose.write(0);
-    delay(500);
+    delay(SERVO_HOSE_DELAY_0DEG);
     servo_hose.write(45);
-    delay(500);
+    delay(SERVO_HOSE_DELAY_45DEG);
     servo_hose.write(23);
-    delay(800);
+    delay(SERVO_HOSE_DELAY_23DEG);
     MOTOR_TRIGGER.run(BACKWARD);
-    delay(triggerMs);
+    delay(MOTOR_TRIGGER_TIMER);
     MOTOR_TRIGGER.run(RELEASE);
 }
 
@@ -442,7 +335,6 @@ void setup()
 {
     pinMode(LED_BUILTIN,OUTPUT);
     Serial.begin(115200);
-    // Wire.begin();
     Wire.begin(9);
     Wire.onReceive(wireReceiveEvent);
     Wire.onRequest(sendCommand);
@@ -461,7 +353,6 @@ void loop()
     {
         triggerExt();
         beep(SPK_1);
-        //wangWang();
     }
 
     if(startSiren){
@@ -474,9 +365,7 @@ void loop()
         if (validateIRWithMotor){
             Serial.println("Driving Forward...");
             executeCommand(FWD);
-            //dubstepSound();
-            delay(200);
-            //();
+            delay(TO_FORWARD_DELAY-100);
             beep();
             executeCommand(STOP);
         }
@@ -509,7 +398,7 @@ void loop()
         }
         else{
             fireOutCounter++;
-            if(fireOutCounter>10){
+            if(fireOutCounter>FIRE_OUT_LIMIT){
                 currentCommandRequest = NONE;
                 executeCommand(STOP);
                 resetIRValues();
@@ -518,30 +407,28 @@ void loop()
         }
 
         if(fireLeftCtr > fireMidCtr){
-            //dubstepSound();
-            delay(500);
+            delay(ON_MANEUVER_DELAY);
             currentCommandRequest = MANEUVER_RIGHT;
             Serial.println("Fire is detected from the left...");
             executeCommand(RIGHT_BW);
-            delay(600);
+            delay(TO_RIGHT_BW_DELAY);
             executeCommand(BWD);
-            delay(200);
+            delay(TO_BACKWARD_DELAY);
             executeCommand(FWD);
-            delay(300);
+            delay(TO_FORWARD_DELAY);
             executeCommand(STOP);
         }
 
         if(fireRightCtr > fireMidCtr){
-            //dubstepSound();
-            delay(500);
+            delay(ON_MANEUVER_DELAY);
             currentCommandRequest = MANEUVER_LEFT;
             Serial.println("Fire is detected from the right...");
             executeCommand(LEFT_BW);
-            delay(600);
+            delay(TO_LEFT_BW_DELAY);
             executeCommand(BWD);
-            delay(200);
+            delay(TO_BACKWARD_DELAY);
             executeCommand(FWD);
-            delay(300);
+            delay(TO_FORWARD_DELAY);
             executeCommand(STOP);
         }
         
